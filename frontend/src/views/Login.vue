@@ -107,7 +107,7 @@ const handleSubmit = async () => {
     loading.value = true
 
     await userStore.login(formData.value.email, formData.value.password)
-    message.success('登录成功')
+    message.success('登录成功，欢迎回来')
 
     const redirect = route.query.redirect as string || '/'
     router.push(redirect)
