@@ -121,7 +121,7 @@ const router = createRouter({
     }
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
     // Set page title
     document.title = to.meta.title ? `${to.meta.title} - My Blog` : 'My Blog'
 
@@ -134,9 +134,19 @@ router.beforeEach((to, _from, next) => {
     }
 
     // Check admin role
-    if (to.meta.requiresAdmin && !userStore.isAdmin) {
-        next({ name: 'Home' })
-        return
+    if (to.meta.requiresAdmin) {
+        if (userStore.token && !userStore.user) {
+            try {
+                await userStore.fetchProfile()
+            } catch {
+                next({ name: 'Home' })
+                return
+            }
+        }
+        if (!userStore.isAdmin) {
+            next({ name: 'Home' })
+            return
+        }
     }
 
     next()
