@@ -121,11 +121,15 @@ const router = createRouter({
     }
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
     // Set page title
     document.title = to.meta.title ? `${to.meta.title} - My Blog` : 'My Blog'
 
     const userStore = useUserStore()
+
+    if (userStore.token && !userStore.user) {
+        await userStore.fetchProfile()
+    }
 
     // Check authentication
     if (to.meta.requiresAuth && !userStore.isLoggedIn) {

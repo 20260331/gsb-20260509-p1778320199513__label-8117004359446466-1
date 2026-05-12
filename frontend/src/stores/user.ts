@@ -14,6 +14,7 @@ interface User {
 export const useUserStore = defineStore('user', () => {
     const user = ref<User | null>(null)
     const token = ref<string | null>(null)
+    let profilePromise: Promise<void> | null = null
 
     const isLoggedIn = computed(() => !!token.value)
     const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'editor')
@@ -22,6 +23,7 @@ export const useUserStore = defineStore('user', () => {
         const response = await api.auth.login(email, password)
         user.value = response.user
         token.value = response.token
+        profilePromise = null
         return response
     }
 
@@ -29,22 +31,33 @@ export const useUserStore = defineStore('user', () => {
         const response = await api.auth.register(username, email, password)
         user.value = response.user
         token.value = response.token
+        profilePromise = null
         return response
     }
 
     async function fetchProfile() {
         if (!token.value) return
-        try {
-            const response = await api.auth.profile()
-            user.value = response.user
-        } catch {
-            logout()
-        }
+        if (user.value) return
+        if (profilePromise) return profilePromise
+
+        profilePromise = (async () => {
+            try {
+                const response = await api.auth.profile()
+                user.value = response.user
+            } catch {
+                logout()
+            } finally {
+                profilePromise = null
+            }
+        })()
+
+        return profilePromise
     }
 
     function logout() {
         user.value = null
         token.value = null
+        profilePromise = null
     }
 
     return {
