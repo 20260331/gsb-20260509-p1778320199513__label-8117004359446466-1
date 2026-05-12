@@ -137,8 +137,8 @@ const isActive = (path: string) => {
 }
 
 const handleLogout = () => {
-  userStore.logout()
-  message.success('已退出登录')
-  router.push('/')
+    userStore.logout()
+    message.success('已退出登录')
+    router.push({ name: 'Login' })
 }
 </script>

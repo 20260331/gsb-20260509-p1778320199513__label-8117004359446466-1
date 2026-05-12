@@ -1,5 +1,9 @@
 import axios, { type AxiosError } from 'axios'
+import { createDiscreteApi } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
+import router from '@/router'
+
+const { message: discreteMessage } = createDiscreteApi(['message'])
 
 const http = axios.create({
     baseURL: '/api',
@@ -9,7 +13,8 @@ const http = axios.create({
     }
 })
 
-// Request interceptor
+let isHandling401 = false
+
 http.interceptors.request.use(
     (config) => {
         const userStore = useUserStore()
@@ -21,16 +26,25 @@ http.interceptors.request.use(
     (error) => Promise.reject(error)
 )
 
-// Response interceptor
 http.interceptors.response.use(
     (response) => response.data,
     (error: AxiosError<{ error: string }>) => {
         const message = error.response?.data?.error || error.message || '请求失败'
 
-        // Handle 401 unauthorized
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !isHandling401) {
             const userStore = useUserStore()
-            userStore.logout()
+
+            if (userStore.initialized) {
+                isHandling401 = true
+                const wasLoggedIn = userStore.isLoggedIn
+                userStore.logout()
+
+                if (wasLoggedIn) {
+                    discreteMessage.warning('登录已过期，请重新登录')
+                    router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+                }
+                setTimeout(() => { isHandling401 = false }, 0)
+            }
         }
 
         return Promise.reject(new Error(message))

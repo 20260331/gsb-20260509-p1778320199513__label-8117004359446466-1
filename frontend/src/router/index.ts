@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { createDiscreteApi } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 
 const routes = [
@@ -121,19 +122,30 @@ const router = createRouter({
     }
 })
 
-router.beforeEach((to, _from, next) => {
-    // Set page title
+const { message: discreteMessage } = createDiscreteApi(['message'])
+
+let initNotifyShown = false
+
+router.beforeEach(async (to, _from, next) => {
     document.title = to.meta.title ? `${to.meta.title} - My Blog` : 'My Blog'
 
     const userStore = useUserStore()
+    const result = await userStore.initialize()
 
-    // Check authentication
+    if (!initNotifyShown) {
+        initNotifyShown = true
+        if (result === 'restored') {
+            discreteMessage.success('登录成功，欢迎回来')
+        } else if (result === 'expired') {
+            discreteMessage.warning('登录已过期，请重新登录')
+        }
+    }
+
     if (to.meta.requiresAuth && !userStore.isLoggedIn) {
         next({ name: 'Login', query: { redirect: to.fullPath } })
         return
     }
 
-    // Check admin role
     if (to.meta.requiresAdmin && !userStore.isAdmin) {
         next({ name: 'Home' })
         return
